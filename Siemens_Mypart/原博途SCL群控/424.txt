@@ -1,0 +1,278 @@
+//1号梯
+IF "1号梯上行状态" THEN
+    #d := #F1;
+    IF NOT (#Y) THEN//顺向
+        IF #F1 < #Z THEN
+            #a1 := #F1;
+            FOR #t := #d TO 10 DO
+                IF "登记数组"."1号梯上呼登记数组"[#t] OR "登记数组"."1号梯内呼登记数组"[#t] THEN
+                    #a1 := #t;
+                END_IF;
+            END_FOR;
+            #a := ABS(#Z - #F1);
+            #b := 0;
+            FOR #t := #F1 TO #Z DO
+                IF "登记数组"."1号梯上呼登记数组"[#t] OR "登记数组"."1号梯内呼登记数组"[#t] THEN
+                    #b := #b + 1;
+                END_IF;
+            END_FOR;
+            IF #a1 <= #Z THEN
+                #c := 0;
+            ELSE
+                #c1 := 0;
+                FOR #t := #Z TO #a1 DO
+                    IF "登记数组"."1号梯上呼登记数组"[#t] OR "登记数组"."1号梯内呼登记数组"[#t] THEN
+                        #c1 := #c1 + 1;
+                    END_IF;
+                END_FOR;
+                #c := ABS(#a1 - #F1) * 4 + (#b + #c1) * 11 + (#c1 - 1) * 11;
+            END_IF;
+            IF "登记数组"."1号梯内呼登记数组"[#Z] THEN//可同时响应两个信号
+                #e := 1;
+            ELSIF "输出变量"."1号梯满载指示" THEN//满载指示
+                #e := 0;
+            ELSE
+                #e := 0.3;
+            END_IF;
+        END_IF;
+        
+        IF #F1 >= #Z THEN
+            #a1 := #F1;
+            FOR #t := #d TO 10 DO
+                IF "登记数组"."1号梯上呼登记数组"[#t] OR "登记数组"."1号梯内呼登记数组"[#t] OR "登记数组"."1号梯下呼登记数组"[#t] THEN
+                    #a1 := #t;
+                END_IF;
+            END_FOR;
+            #a2 := #F1;
+            FOR #t := #a1 TO 1 BY -1 DO
+                IF "登记数组"."1号梯下呼登记数组"[#t] OR "登记数组"."1号梯上呼登记数组"[#t] THEN
+                    #a2 := #t;
+                END_IF;
+            END_FOR;
+            #a := ABS(#a1 - #F1) + ABS(#a1 - #a2) + ABS(#a2 - #Z);
+            #b := 0;
+            FOR #t := #F1 TO #a1 DO
+                IF "登记数组"."1号梯上呼登记数组"[#t] OR "登记数组"."1号梯内呼登记数组"[#t] THEN
+                    #b := #b + 1;
+                END_IF;
+            END_FOR;
+            FOR #t := #a1 TO #a2 BY -1 DO
+                IF "登记数组"."1号梯下呼登记数组"[#t] THEN
+                    #b := #b + 1;
+                END_IF;
+            END_FOR;
+
+            IF #Z > #a2 THEN
+                FOR #t := #a2 TO #Z DO
+                    IF "登记数组"."1号梯上呼登记数组"[#t] THEN
+                        #b := #b + 1;
+                    END_IF;
+                END_FOR;
+            END_IF;
+
+            #c := 0;
+            #e := 0;
+        END_IF;
+    END_IF;
+END_IF;
+    
+    IF #Y THEN  //逆向 Y为1的时候是下呼
+        #a1 := #F1;
+        FOR #t := #d TO 10 DO
+            IF "登记数组"."1号梯上呼登记数组"[#t] OR "登记数组"."1号梯内呼登记数组"[#t] OR "登记数组"."1号梯下呼登记数组"[#t] THEN
+                #a1 := #t;
+            END_IF;
+        END_FOR;
+        #a := ABS(#a1 - #F1) + ABS(#a1 - #Z);
+        #b := 0;
+        FOR #t := #F1 TO #a1 DO
+            IF "登记数组"."1号梯上呼登记数组"[#t] OR "登记数组"."1号梯内呼登记数组"[#t] THEN
+                #b := #b + 1;
+            END_IF;
+        END_FOR;
+        IF #a1 > #Z THEN
+            FOR #t := #a1 TO #Z BY -1 DO
+                IF "登记数组"."1号梯下呼登记数组"[#t] THEN
+                    #b := #b + 1;
+                END_IF;
+            END_FOR;
+            #c := 0;
+            #e := 0.3;
+    END_IF;
+    #w := #a * 4 + #b * 11; ////////////////////在 上外呼和下外呼的两个IF之外 w是得出的总时间 运行距离和停层次数的综合判断
+    IF #w < 20 THEN   /////////////////////通过w得出temp 作为隶属度函数得出的值
+        #temp := 1;
+    ELSIF #w < 60 THEN
+        #temp := (60 - #w) / 40;
+    ELSE
+        #temp := 0;
+    END_IF;
+    "1号梯打分分数" := 20 * #temp + 60 * EXP(-0.0008 * SQR(#c)) + 20 * #e;
+    IF #F1 = #a1 OR #F1 = #a2 THEN
+        FOR #t := 1 TO 10 DO
+            "登记数组"."1号梯上呼登记数组"[#t] := 0;
+            "登记数组"."1号梯下呼登记数组"[#t] := 0;
+        END_FOR;
+    END_IF;
+END_IF;
+
+
+
+
+%下行状态
+IF "1号梯下行状态" THEN
+    #d := #F1;
+    IF #Y THEN
+        IF #F1 > #Z THEN
+            #a2 := #F1;
+            FOR #t := #d TO 1 BY -1 DO
+                IF "登记数组"."1号梯下呼登记数组"[#t] OR "登记数组"."1号梯内呼登记数组"[#t] THEN
+                    #a2 := #t;
+                END_IF;
+            END_FOR;
+            #a := ABS(#Z - #F1);
+            #b := 0;
+            FOR #t := #F1 TO #Z BY -1 DO
+                IF "登记数组"."1号梯下呼登记数组"[#t] OR "登记数组"."1号梯内呼登记数组"[#t] THEN
+                    #b := #b + 1;
+                END_IF;
+            END_FOR;
+            IF #a2 >= #Z THEN
+                #c := 0;
+            ELSE
+                #c1 := 0;
+                FOR #t := #Z TO #a2 BY -1 DO
+                    IF "登记数组"."1号梯下呼登记数组"[#t] OR "登记数组"."1号梯内呼登记数组"[#t] THEN
+                        #c1 := #c1 + 1;
+                    END_IF;
+                END_FOR;
+                #c := ABS(#a2 - #F1) * 4 + (#b + #c1) * 11 + (#c1 - 1) * 11;
+            END_IF;
+            IF "登记数组"."1号梯内呼登记数组"[#Z] THEN
+                #e := 1;
+            ELSIF "输出变量"."1号梯满载指示" THEN
+                #e := 0;
+            ELSE
+                #e := 0.3;
+            END_IF;
+        END_IF;
+        IF #F1 <= #Z THEN
+            #a2 := #F1;
+            FOR #t := #d TO 1 BY -1 DO
+                IF "登记数组"."1号梯上呼登记数组"[#t] OR "登记数组"."1号梯内呼登记数组"[#t] OR "登记数组"."1号梯下呼登记数组"[#t] THEN
+                    #a2 := #t;
+                END_IF;
+            END_FOR;
+            #a1 := #F1;
+            FOR #t := #a1 TO 10 BY 1 DO
+                IF "登记数组"."1号梯下呼登记数组"[#t] OR "登记数组"."1号梯上呼登记数组"[#t] THEN
+                    #a1 := #t;
+                END_IF;
+            END_FOR;
+            #a := ABS(#a2 - #F1) + ABS(#a1 - #a2) + ABS(#a1 - #Z);
+            #b := 0;
+            FOR #t := #F1 TO #a2 BY -1 DO
+                IF "登记数组"."1号梯下呼登记数组"[#t] OR "登记数组"."1号梯内呼登记数组"[#t] THEN
+                    #b := #b + 1;
+                END_IF;
+            END_FOR;
+            FOR #t := #a2 TO #a1 BY 1 DO
+                IF "登记数组"."1号梯上呼登记数组"[#t] THEN
+                    #b := #b + 1;
+                END_IF;
+            END_FOR;
+
+            IF #Z > #a2 THEN                  ？？？？？？？？？？？？？？？ 要改成 Z < a1
+                FOR #t := #a2 TO #Z DO      ????????????????要改成 a1 BY -1 TO Z
+                    IF "登记数组"."1号梯上呼登记数组"[#t] THEN
+                        #b := #b + 1;
+                    END_IF;
+                END_FOR;
+            END_IF;
+            #c := 0;
+            #e := 0;
+        END_IF;
+    END_IF;
+    IF #Y THEN
+        #a2 := #F1;
+        FOR #t := #d TO 1 BY -1 DO
+            IF "登记数组"."1号梯上呼登记数组"[#t] OR "登记数组"."1号梯内呼登记数组"[#t] OR "登记数组"."1号梯下呼登记数组"[#t] THEN
+                #a2 := #t;
+            END_IF;
+        END_FOR;
+        #a := ABS(#a2 - #F1) + ABS(#a2 - #Z);
+        #b := 0;
+        FOR #t := #F1 TO #a2 BY -1 DO
+            IF "登记数组"."1号梯下呼登记数组"[#t] OR "登记数组"."1号梯内呼登记数组"[#t] THEN
+                #b := #b + 1;
+            END_IF;
+        END_FOR;
+        IF #a2 < #Z THEN
+            FOR #t := #a2 TO #Z BY 1 DO
+                IF "登记数组"."1号梯上呼登记数组"[#t] THEN
+                    #b := #b + 1;
+                END_IF;
+            END_FOR;
+            #c := 0;
+            #e := 0.3;
+        END_IF;
+    END_IF;
+    #w := #a * 4 + #b * 11;
+    IF #w < 20 THEN
+        #temp := 1;
+    ELSIF #w < 60 THEN
+        #temp := (60 - #w) / 40;
+    ELSE
+        #temp := 0;
+    END_IF;
+    "1号梯打分分数" := 20 * #temp + 60 * EXP(-0.0008 * SQR(#c)) + 20 * #e;
+    IF #F1 = #a1 OR #F1 = #a2 THEN
+        FOR #t := 1 TO 10 DO
+            "登记数组"."1号梯上呼登记数组"[#t] := 0;
+            "登记数组"."1号梯下呼登记数组"[#t] := 0;
+        END_FOR;
+    END_IF;
+END_IF;
+
+%静止状态
+IF NOT "1号梯上行状态" THEN
+    IF NOT "1号梯下行状态" THEN
+        #a := ABS("1号梯楼层精确计数器".CV - #Z);
+        "1号梯打分分数" := 100-#a;
+    END_IF;
+END_IF;
+
+
+
+
+-----------------------------------------
+IF "1号梯打分分数" >= "2号梯打分分数" AND "1号梯打分分数" >= "3号梯打分分数" AND "1号梯打分分数" >= "4号梯打分分数" AND "1号梯打分分数" >= "5号梯打分分数" AND "1号梯打分分数" >= "6号梯打分分数" THEN
+    "s1" := 1;
+ELSE
+    "s1" := 0;
+END_IF;
+IF "2号梯打分分数" > "1号梯打分分数" AND "2号梯打分分数" >= "3号梯打分分数" AND "2号梯打分分数" >= "4号梯打分分数" AND "2号梯打分分数" >= "5号梯打分分数" AND "2号梯打分分数" >= "6号梯打分分数" THEN
+    "s2" := 1;
+ELSE
+    "s2" := 0;
+END_IF;
+IF "3号梯打分分数" > "1号梯打分分数" AND "3号梯打分分数" > "2号梯打分分数" AND "3号梯打分分数" >= "4号梯打分分数" AND "3号梯打分分数" >= "5号梯打分分数" AND "3号梯打分分数" >= "6号梯打分分数" THEN
+    "s3" := 1;
+ELSE
+    "s3" := 0;
+END_IF;
+IF "4号梯打分分数" > "1号梯打分分数" AND "4号梯打分分数" > "2号梯打分分数" AND "4号梯打分分数" > "3号梯打分分数" AND "4号梯打分分数" >= "5号梯打分分数" AND "4号梯打分分数" >= "6号梯打分分数" THEN
+    "s4" := 1;
+ELSE
+    "s4" := 0;
+END_IF;
+IF "5号梯打分分数" > "1号梯打分分数" AND "5号梯打分分数" > "2号梯打分分数" AND "5号梯打分分数" > "3号梯打分分数" AND "5号梯打分分数" > "4号梯打分分数" AND "5号梯打分分数" >= "6号梯打分分数" THEN
+    "s5" := 1;
+ELSE
+    "s5" := 0;
+END_IF;
+IF "6号梯打分分数" > "1号梯打分分数" AND "6号梯打分分数" > "2号梯打分分数" AND "6号梯打分分数" > "3号梯打分分数" AND "6号梯打分分数" > "4号梯打分分数" AND "6号梯打分分数" > "5号梯打分分数" THEN
+    "s6" := 1;
+ELSE
+    "s6" := 0;
+END_IF;
